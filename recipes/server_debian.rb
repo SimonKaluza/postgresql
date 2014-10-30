@@ -32,25 +32,15 @@ directory node['postgresql']['config']['data_directory'] do
   owner 'postgres'
   group 'postgres'
   mode '0700'
+  notifies :run, 'ruby_block[moving data directory]', :immediately
 end
 
-ruby_block "creating initial data directory" do
+ruby_block "moving data directory" do
   block do
-    FileUtils.cp_r(Dir["/var/lib/postgresql/#{node['postgresql']['version']}/main/*"], node['postgresql']['config']['data_directory'])
+    FileUtils.cp_r(Dir["/var/lib/postgresql/#{node['postgresql']['version']}/main/*"], node['postgresql']['config']['data_directory'], :preserve => true)
   end
   only_if { Dir["#{node['postgresql']['config']['data_directory']}/*"].empty? }
-end
-
-execute "chown data dir to postgres" do
-  command "chown -R postgres:postgres #{node['postgresql']['config']['data_directory']}"
-  user "root"
-  action :run
-end
-
-execute "chmod data dir to postgres" do
-  command "chmod -R 700 #{node['postgresql']['config']['data_directory']}"
-  user "root"
-  action :run
+  action :nothing
 end
 
 service "postgresql" do
